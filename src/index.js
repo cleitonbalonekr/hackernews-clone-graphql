@@ -1,55 +1,36 @@
 const { GraphQLServer } = require("graphql-yoga");
+const { PrismaClient } = require("@prisma/client");
+const { PubSub } = require("graphql-yoga");
 
-let links = [
-  {
-    id: "link-0",
-    url: "www.howtographql.com",
-    description: "Fullstack tutorial for GraphQL",
-  },
-];
+const Query = require("./resolvers/Query");
+const Mutation = require("./resolvers/Mutation");
+const User = require("./resolvers/User");
+const Link = require("./resolvers/Link");
+const Subscription = require("./resolvers/Subscription");
+const Vote = require("./resolvers/Vote");
 
-// 1
-let idCount = links.length;
+const prisma = new PrismaClient();
+const pubsub = new PubSub();
+
 const resolvers = {
-  Query: {
-    info: () => `This is the API of a Hackernews Clone`,
-    feed: () => links,
-    link: (parent, args) => {
-      const link = links.find((link) => link.id == args.id);
-      return link;
-    },
-  },
-  Mutation: {
-    // 2
-    post: (parent, args) => {
-      const link = {
-        id: `link-${idCount++}`,
-        description: args.description,
-        url: args.url,
-      };
-      links.push(link);
-      return link;
-    },
-    updateLink: (parent, args) => {
-      const linkIndex = links.findIndex((link) => link.id == args.id);
-      const newLink = {
-        id: args.id,
-        url: args.url,
-        description: args.description,
-      };
-      links[linkIndex] = newLink;
-      return links[linkIndex];
-    },
-    deleteLink: (parent, args) => {
-      const linkIndex = links.findIndex((link) => link.id == args.id);
-      const link = links[linkIndex];
-      links.splice(linkIndex, 1);
-      return link;
-    },
-  },
+  Query,
+  Mutation,
+  Subscription,
+  User,
+  Link,
+  Vote,
 };
+
 const server = new GraphQLServer({
   typeDefs: "./src/schema.graphql",
   resolvers,
+  context: (request) => {
+    return {
+      ...request,
+      prisma,
+      pubsub,
+    };
+  },
 });
+
 server.start(() => console.log(`Server is running on http://localhost:4000`));
